@@ -1,4 +1,4 @@
-export default function TaskForm({ setTasks }) {
+export default function TaskForm({ setTasks, showAlert }) {
   async function addTask(formData) {
     const title = formData.get('title');
     const description = formData.get('description');
@@ -13,8 +13,12 @@ export default function TaskForm({ setTasks }) {
       }),
     });
     const createdtask = await response.json();
+    console.log(createdtask);
     if (createdtask.id) {
       setTasks(prev => [createdtask, ...prev]);
+      showAlert('Task created successfully')
+    }else{
+      if (createdtask) showAlert(createdtask.message, 'error');
     }
   }
   return (

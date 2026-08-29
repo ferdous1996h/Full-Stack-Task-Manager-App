@@ -5,6 +5,7 @@ export default function EditingTask({
   task,
   setIsEditing,
   setTasks,
+  showAlert,
 }) {
   let titleTemp = useRef(task.title);
   let descriptionTemp = useRef(task.description);
@@ -21,8 +22,11 @@ export default function EditingTask({
     });
     const editedTask = await response.json();
     console.log(editedTask);
-    setTasks(prev => prev.map(task => (task.id === id ? editedTask : task)));
-    setIsEditing(false);
+    if (editedTask.id) {
+      setTasks(prev => prev.map(task => (task.id === id ? editedTask : task)));
+      setIsEditing(false);
+      showAlert('Task record updated!', 'info');
+    }
   }
   return (
     <section>

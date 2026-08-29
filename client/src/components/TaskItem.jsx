@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import EditingTask from './EditingTask.jsx';
 import StableTask from './StableTask.jsx';
-export default function TaskItem({ task, setTasks }) {
+export default function TaskItem({ task, setTasks, showAlert }) {
   const [isEditing, setIsEditing] = useState(false);
   async function updateTasks(id, status) {
     const response = await fetch(`/api/tasks/${id}`, {
@@ -15,7 +15,9 @@ export default function TaskItem({ task, setTasks }) {
       }),
     });
     const updateTask = await response.json();
-    setTasks(prev => prev.map(task => (task.id === id ? updateTask : task)));
+    if (updateTask.id) {
+      setTasks(prev => prev.map(task => (task.id === id ? updateTask : task)));
+    }
   }
   async function deleteTask(id) {
     const response = await fetch(`/api/tasks/${id}`, {
@@ -29,7 +31,9 @@ export default function TaskItem({ task, setTasks }) {
       console.error(data.error);
       return;
     }
-    console.log(data.message);
+    if(data.message){
+      showAlert(data.message)
+    }
     setTasks(prev => prev.filter(ele => ele.id !== id));
   }
   return (
@@ -40,6 +44,7 @@ export default function TaskItem({ task, setTasks }) {
           updateTasks={updateTasks}
           setIsEditing={setIsEditing}
           setTasks={setTasks}
+          showAlert={showAlert}
         />
       ) : (
         <StableTask

@@ -1,5 +1,6 @@
 import { json } from 'express';
 import { getDBConnection } from '../db/getDBConnection.js';
+import { isTitleTooLong } from '../utils/isTitleTooLong.js';
 export async function getTasks(req, res) {
   const db = await getDBConnection();
   try {
@@ -14,6 +15,7 @@ export async function getTasks(req, res) {
   } catch (err) {
     return res.status(500).send({
       message: 'Fail to fetch task',
+      success: false,
     });
   }
 }
@@ -33,11 +35,13 @@ export async function getSingleTask(req, res) {
     } else {
       return res.status(404).send({
         message: 'Task not found',
+        success: false,
       });
     }
   } catch (err) {
     return res.status(500).send({
       message: 'Fail to fetch the task',
+      success: false,
     });
   }
 }
@@ -47,12 +51,19 @@ export async function createTask(req, res) {
     let { title, description = '' } = req.body;
     if (typeof title !== 'string' || !title.trim()) {
       return res.status(400).send({
-        error: 'Title is required',
+        message: 'Title is required',
+        success: false,
       });
     }
     title = title.trim();
     if (description) {
       description = description.toString().trim();
+    }
+    if (isTitleTooLong(title, 40)) {
+      return res.status(400).send({
+        message: `This is a very long title...`,
+        success: false,
+      });
     }
     const result = await db.get(
       `
@@ -67,6 +78,7 @@ export async function createTask(req, res) {
     return res.status(500).send({
       message: `There is a problem while creating a task`,
       error: err,
+      success: false,
     });
   }
 }
@@ -81,6 +93,7 @@ export async function updateTask(req, res) {
       if (typeof completed !== 'boolean') {
         return res.status(400).send({
           message: 'Completed request must be in boolean value',
+          success: false,
         });
       }
       updates.push('completed = ?');
@@ -96,7 +109,8 @@ export async function updateTask(req, res) {
     }
     if (updates.length === 0) {
       return res.status(400).send({
-        error: 'Incomplete update',
+        message: 'Incomplete update',
+        success: false,
       });
     }
     params.push(patchId);
@@ -111,7 +125,8 @@ export async function updateTask(req, res) {
     );
     if (!result) {
       return res.status(404).send({
-        error: 'Task not found.',
+        message: 'Task not found.',
+        success: false,
       });
     }
     const tasks = { ...result, completed: Boolean(result.completed) };
@@ -120,6 +135,7 @@ export async function updateTask(req, res) {
     return res.status(500).send({
       message: `There is a problem while updating a task`,
       error: err,
+      success: false,
     });
   }
 }
@@ -136,17 +152,20 @@ export async function deleteTask(req, res) {
     );
     if (result.changes !== 1) {
       return res.status(404).send({
-        error: 'Task not found',
+        message: 'Task not found',
+        success: false,
       });
     } else {
       return res.status(200).send({
         message: 'Task deleted successfully',
+        success: true,
       });
     }
   } catch (err) {
     console.error(err);
     return res.status(500).send({
-      error: 'Task deletion failed',
+      message: 'Task deletion failed',
+      success: false,
     });
   }
 }
