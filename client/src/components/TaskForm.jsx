@@ -1,0 +1,54 @@
+export default function TaskForm({ setTasks }) {
+  async function addTask(formData) {
+    const title = formData.get('title');
+    const description = formData.get('description');
+    const response = await fetch('/api/tasks', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title,
+        description,
+      }),
+    });
+    const createdtask = await response.json();
+    if (createdtask.id) {
+      setTasks(prev => [createdtask, ...prev]);
+    }
+  }
+  return (
+    <section className="p-4">
+      <h1 className="text-2xl mb-6 text-center">Task Manager</h1>
+      <form action={addTask}>
+        <section className="flex flex-col">
+          <label htmlFor="title" className="text-blue-100">
+            Title
+          </label>
+          <input
+            type="text"
+            id="title"
+            name="title"
+            placeholder="What need to be done?"
+            className="input input-sm w-full"
+          />
+          <label htmlFor="description " className="text-blue-100">
+            Description
+          </label>
+          <textarea
+            className="textarea h-16 w-full"
+            placeholder="Add details (optional)"
+            id="description"
+            name="description"
+          ></textarea>
+          <button
+            type="submit"
+            className="btn btn-block border-1 border-gray-500 mt-2"
+          >
+            + Add task
+          </button>
+        </section>
+      </form>
+    </section>
+  );
+}
