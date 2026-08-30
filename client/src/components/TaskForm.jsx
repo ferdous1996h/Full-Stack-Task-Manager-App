@@ -2,6 +2,7 @@ export default function TaskForm({ setTasks, showAlert }) {
   async function addTask(formData) {
     const title = formData.get('title');
     const description = formData.get('description');
+    const priority = formData.get('priority');
     const response = await fetch('/api/tasks', {
       method: 'POST',
       headers: {
@@ -10,6 +11,7 @@ export default function TaskForm({ setTasks, showAlert }) {
       body: JSON.stringify({
         title,
         description,
+        priority,
       }),
     });
     const createdtask = await response.json();
@@ -45,6 +47,18 @@ export default function TaskForm({ setTasks, showAlert }) {
             id="description"
             name="description"
           ></textarea>
+          <label htmlFor="priority"></label>
+          <select
+            defaultValue="Select priority"
+            name="priority"
+            id="priority"
+            className="select select-sm appearance-none mt-2"
+          >
+            <option disabled={true}>Select priority</option>
+            <option>Low</option>
+            <option>Medium</option>
+            <option>High</option>
+          </select>
           <button
             type="submit"
             className="btn btn-block border-1 border-gray-500 mt-2"

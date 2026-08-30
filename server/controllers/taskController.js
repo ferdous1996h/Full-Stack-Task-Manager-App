@@ -48,7 +48,8 @@ export async function getSingleTask(req, res) {
 export async function createTask(req, res) {
   const db = await getDBConnection();
   try {
-    let { title, description = '' } = req.body;
+    const acceptedPriority = ['low', 'medium', 'high'];
+    let { title, description = '', priority } = req.body;
     if (typeof title !== 'string' || !title.trim()) {
       return res.status(400).send({
         message: 'Title is required',
@@ -56,6 +57,15 @@ export async function createTask(req, res) {
       });
     }
     title = title.trim();
+    if (priority === null) priority = 'medium';
+    priority = priority.toLowerCase();
+    console.log(priority);
+    if (!acceptedPriority.includes(priority)) {
+      return res.status(400).send({
+        message: 'Priority can be only high, medium or low.',
+        success: false,
+      });
+    }
     if (description) {
       description = description.toString().trim();
     }
@@ -65,12 +75,13 @@ export async function createTask(req, res) {
         success: false,
       });
     }
+
     const result = await db.get(
       `
-      INSERT INTO tasks (title, description) VALUES(?,?)
-      RETURNING id,title,description,completed,created_at
+      INSERT INTO tasks (title, description,priority) VALUES(?,?,?)
+      RETURNING id,title,description,completed,priority,created_at
       `,
-      [title, description]
+      [title, description, priority]
     );
     const tasks = { ...result, completed: Boolean(result.completed) };
     return res.status(201).json(tasks);
@@ -85,8 +96,9 @@ export async function createTask(req, res) {
 export async function updateTask(req, res) {
   const db = await getDBConnection();
   try {
+    const acceptedPriority = ['low', 'medium', 'high'];
     const patchId = req.params.id;
-    const { completed, title, description } = req.body;
+    let { completed, title, description, priority } = req.body;
     const updates = [];
     const params = [];
     if (completed !== undefined) {
@@ -107,6 +119,18 @@ export async function updateTask(req, res) {
       updates.push('description = ?');
       params.push(description);
     }
+    if(priority){
+      priority=priority.toLowerCase()
+    }
+    if (!acceptedPriority.includes(priority)) {
+      return res.status(400).send({
+        message: 'Priority can be only high, medium or low.',
+        success: false,
+      });
+    }
+    updates.push('priority = ?');
+    params.push(priority)
+
     if (updates.length === 0) {
       return res.status(400).send({
         message: 'Incomplete update',
@@ -119,7 +143,7 @@ export async function updateTask(req, res) {
       UPDATE tasks
       SET ${updates.join(', ')}
       WHERE id=?
-      RETURNING id,title,description,completed,created_at
+      RETURNING id,title,description,completed,created_at,priority
       `,
       params
     );

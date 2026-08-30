@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import titleCase from '../utils/titleCase.js';
 
 export default function EditingTask({
   updateTasks,
@@ -9,7 +10,8 @@ export default function EditingTask({
 }) {
   let titleTemp = useRef(task.title);
   let descriptionTemp = useRef(task.description);
-  async function updateTaskDetails(id, title, description) {
+  let priorityTemp = useRef(task.priority);
+  async function updateTaskDetails(id, title, description, priority) {
     const response = await fetch(`/api/tasks/${id}`, {
       method: 'PATCH',
       headers: {
@@ -18,6 +20,7 @@ export default function EditingTask({
       body: JSON.stringify({
         title,
         description,
+        priority,
       }),
     });
     const editedTask = await response.json();
@@ -57,6 +60,23 @@ export default function EditingTask({
             }}
           />
         </section>
+        <div className="ml-3">
+          <label htmlFor="priority" className="text-sm italic text-gray-400">
+            Priority:
+          </label>
+          <select
+            defaultValue={titleCase(task.priority)}
+            name="priority"
+            id="priority"
+            className="select select-xs appearance-none mt-2 w-[9em] "
+            onChange={e => (priorityTemp.current = e.target.value)}
+          >
+            <option disabled={true}>Select priority</option>
+            <option>Low</option>
+            <option>Medium</option>
+            <option>High</option>
+          </select>
+        </div>
       </label>
       <div className="flex justify-between items-center w-9/10 m-auto">
         <div className="badge badge-outline badge-info ml-5">Editing</div>
@@ -66,7 +86,8 @@ export default function EditingTask({
               updateTaskDetails(
                 task.id,
                 titleTemp.current,
-                descriptionTemp.current
+                descriptionTemp.current,
+                priorityTemp.current
               )
             }
             className="border-2 border-gray-300 bg-white text-black rounded-lg px-3 py-1 cursor-pointer active:scale-90"

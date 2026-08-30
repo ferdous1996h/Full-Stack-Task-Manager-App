@@ -41,7 +41,7 @@ export default function App() {
   if (isLoading) return <LoadingApp />;
   if (error) return <ErrorMSG error={error} />;
   return (
-    <section className="flex flex-col justify-center">
+    <section className="flex flex-col justify-center ">
       <TaskForm setTasks={setTasks} showAlert={showAlert} />
       <AlertToast alert={alert} />
       <TaskList tasks={tasks} setTasks={setTasks} showAlert={showAlert} />
