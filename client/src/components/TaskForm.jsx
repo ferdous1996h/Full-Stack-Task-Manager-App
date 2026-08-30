@@ -16,8 +16,8 @@ export default function TaskForm({ setTasks, showAlert }) {
     console.log(createdtask);
     if (createdtask.id) {
       setTasks(prev => [createdtask, ...prev]);
-      showAlert('Task created successfully')
-    }else{
+      showAlert('Task created successfully', 'success');
+    } else {
       if (createdtask) showAlert(createdtask.message, 'error');
     }
   }
