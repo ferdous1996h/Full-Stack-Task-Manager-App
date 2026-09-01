@@ -11,7 +11,8 @@ export default function EditingTask({
   let titleTemp = useRef(task.title);
   let descriptionTemp = useRef(task.description);
   let priorityTemp = useRef(task.priority);
-  async function updateTaskDetails(id, title, description, priority) {
+  let dueDateTemp = useRef(task.dueDate);
+  async function updateTaskDetails(id, title, description, priority, dueDate) {
     const response = await fetch(`/api/tasks/${id}`, {
       method: 'PATCH',
       headers: {
@@ -21,6 +22,7 @@ export default function EditingTask({
         title,
         description,
         priority,
+        dueDate,
       }),
     });
     const editedTask = await response.json();
@@ -76,6 +78,19 @@ export default function EditingTask({
             <option>Medium</option>
             <option>High</option>
           </select>
+          <div>
+            <label className="text-sm italic text-gray-400" htmlFor="dueDate">
+              Due date
+            </label>
+            <input
+              type="date"
+              defaultValue={task.dueDate ? task.dueDate.split('T')[0] : ''}
+              name="dueDate"
+              className="input"
+              id="dueDate"
+              onChange={e => (dueDateTemp.current = e.target.value)}
+            />
+          </div>
         </div>
       </label>
       <div className="flex justify-between items-center w-9/10 m-auto">
@@ -87,7 +102,8 @@ export default function EditingTask({
                 task.id,
                 titleTemp.current,
                 descriptionTemp.current,
-                priorityTemp.current
+                priorityTemp.current,
+                dueDateTemp.current
               )
             }
             className="border-2 border-gray-300 bg-white text-black rounded-lg px-3 py-1 cursor-pointer active:scale-90"

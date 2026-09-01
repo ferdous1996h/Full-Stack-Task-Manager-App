@@ -7,7 +7,7 @@ async function alterTable() {
   const db = await getDBConnection();
   await db.run(`
     ALTER TABLE tasks
-    ADD COLUMN priority TEXT NOT NULL DEFAULT 'medium'
+    ADD COLUMN dueDate TEXT;
     `);
   console.log('Table altered');
   await db.close();

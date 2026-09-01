@@ -49,7 +49,7 @@ export async function createTask(req, res) {
   const db = await getDBConnection();
   try {
     const acceptedPriority = ['low', 'medium', 'high'];
-    let { title, description = '', priority } = req.body;
+    let { title, description = '', priority, dueDate } = req.body;
     if (typeof title !== 'string' || !title.trim()) {
       return res.status(400).send({
         message: 'Title is required',
@@ -75,13 +75,16 @@ export async function createTask(req, res) {
         success: false,
       });
     }
-
+    if (dueDate) {
+      dueDate = new Date(dueDate).toISOString();
+      console.log(dueDate);
+    }
     const result = await db.get(
       `
-      INSERT INTO tasks (title, description,priority) VALUES(?,?,?)
-      RETURNING id,title,description,completed,priority,created_at
+      INSERT INTO tasks (title, description,priority,dueDate) VALUES(?,?,?,?)
+      RETURNING id,title,description,completed,priority,created_at,dueDate
       `,
-      [title, description, priority]
+      [title, description, priority, dueDate]
     );
     const tasks = { ...result, completed: Boolean(result.completed) };
     return res.status(201).json(tasks);
@@ -98,7 +101,7 @@ export async function updateTask(req, res) {
   try {
     const acceptedPriority = ['low', 'medium', 'high'];
     const patchId = req.params.id;
-    let { completed, title, description, priority } = req.body;
+    let { completed, title, description, priority, dueDate } = req.body;
     const updates = [];
     const params = [];
     if (completed !== undefined) {
@@ -119,18 +122,22 @@ export async function updateTask(req, res) {
       updates.push('description = ?');
       params.push(description);
     }
-    if(priority){
-      priority=priority.toLowerCase()
+    if (priority) {
+      priority = priority.toLowerCase();
+      if (!acceptedPriority.includes(priority)) {
+        return res.status(400).send({
+          message: 'Priority can be only high, medium or low.',
+          success: false,
+        });
+      }
+      updates.push('priority = ?');
+      params.push(priority);
     }
-    if (!acceptedPriority.includes(priority)) {
-      return res.status(400).send({
-        message: 'Priority can be only high, medium or low.',
-        success: false,
-      });
+    if (dueDate) {
+      dueDate = new Date(dueDate).toISOString();
+      updates.push('dueDate = ?');
+      params.push(dueDate);
     }
-    updates.push('priority = ?');
-    params.push(priority)
-
     if (updates.length === 0) {
       return res.status(400).send({
         message: 'Incomplete update',
@@ -143,7 +150,7 @@ export async function updateTask(req, res) {
       UPDATE tasks
       SET ${updates.join(', ')}
       WHERE id=?
-      RETURNING id,title,description,completed,created_at,priority
+      RETURNING id,title,description,completed,created_at,priority,dueDate
       `,
       params
     );

@@ -1,19 +1,13 @@
 import { FaRegEdit } from 'react-icons/fa';
-
-import clsx from 'clsx';
 import DeleteModal from './DeleteModal.jsx';
+import DuedateBadge from './Tags/DuedateBadge.jsx';
+import PriorityBadge from './Tags/PriorityBadge.jsx';
 export default function StableTask({
   task,
   deleteTask,
   setIsEditing,
   updateTasks,
 }) {
-  const priorityCLS = {
-    high: 'badge-secondary',
-    medium: 'badge-warning',
-    low: 'badge-success',
-    primary: 'badge-primary',
-  };
   return (
     <label className="flex">
       <input
@@ -25,16 +19,12 @@ export default function StableTask({
       <section className="flex justify-between w-full">
         <div>
           <div
-            className={`${task.completed ? 'line-through' : ''} text-xl font-bold`}
+            className={`${task.completed ? 'line-through' : ''} text-xl font-bold flex`}
           >
             {task.title}
-            <div
-              className={clsx(
-                'badge badge-sm badge-outline badge-primary ml-6',
-                priorityCLS[task.priority]
-              )}
-            >
-              {task.priority}
+            <div className={`flex gap-2 ${task.completed ? 'hidden':''}`}>
+              <PriorityBadge task={task} />
+              <DuedateBadge task={task} />
             </div>
           </div>
           <p

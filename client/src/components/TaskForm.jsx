@@ -3,6 +3,11 @@ export default function TaskForm({ setTasks, showAlert }) {
     const title = formData.get('title');
     const description = formData.get('description');
     const priority = formData.get('priority');
+    let dueDate = null;
+    if (formData.get('dueDate')) {
+      dueDate = new Date(formData.get('dueDate') || null);
+      console.log(dueDate);
+    }
     const response = await fetch('/api/tasks', {
       method: 'POST',
       headers: {
@@ -12,6 +17,7 @@ export default function TaskForm({ setTasks, showAlert }) {
         title,
         description,
         priority,
+        dueDate,
       }),
     });
     const createdtask = await response.json();
@@ -59,6 +65,8 @@ export default function TaskForm({ setTasks, showAlert }) {
             <option>Medium</option>
             <option>High</option>
           </select>
+          <label htmlFor="dueDate"></label>
+          <input type="date" name="dueDate" id="dueDate" className="input" />
           <button
             type="submit"
             className="btn btn-block border-1 border-gray-500 mt-2"

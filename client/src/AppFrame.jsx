@@ -1,7 +1,7 @@
 export default function AppFrame({ children }) {
   return (
     <section className="w-full flex flex-col items-center">
-      <div className="mockup-phone ">
+      <div className="mockup-phone">
         <div className="mockup-phone-camera"></div>
         <div
           className="mockup-phone-display text-white place-content-baseline
