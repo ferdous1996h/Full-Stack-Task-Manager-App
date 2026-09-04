@@ -1,5 +1,6 @@
 import cors from 'cors';
 import express from 'express';
+import { categoryRouter } from './router/categoryRouter.js';
 import { taskRouter } from './router/taskRouter.js';
 const app = express();
 const PORT = 3000;
@@ -8,6 +9,7 @@ const PORT = 3000;
 app.use(express.json());
 
 app.use('/api/tasks', taskRouter);
+app.use('/api/categories', categoryRouter);
 
 app.listen(PORT, () => {
   console.log(`Server is running at PORT ${PORT}`);

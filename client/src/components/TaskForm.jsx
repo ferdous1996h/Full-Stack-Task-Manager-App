@@ -1,8 +1,11 @@
+import MultiselectInput from './MultiselectInput.jsx';
+
 export default function TaskForm({ setTasks, showAlert }) {
   async function addTask(formData) {
     const title = formData.get('title');
     const description = formData.get('description');
     const priority = formData.get('priority');
+    let multiSelect = formData.getAll('multiSelect');
     let dueDate = null;
     if (formData.get('dueDate')) {
       dueDate = new Date(formData.get('dueDate') || null);
@@ -18,6 +21,7 @@ export default function TaskForm({ setTasks, showAlert }) {
         description,
         priority,
         dueDate,
+        multiSelect,
       }),
     });
     const createdtask = await response.json();
@@ -53,6 +57,7 @@ export default function TaskForm({ setTasks, showAlert }) {
             id="description"
             name="description"
           ></textarea>
+          <MultiselectInput />
           <label htmlFor="priority"></label>
           <select
             defaultValue="Select priority"

@@ -1,6 +1,7 @@
 import { FaRegEdit } from 'react-icons/fa';
 import DeleteModal from './DeleteModal.jsx';
 import DuedateBadge from './Tags/DuedateBadge.jsx';
+import MultiselectBadge from './Tags/MultiselectBadge.jsx';
 import PriorityBadge from './Tags/PriorityBadge.jsx';
 export default function StableTask({
   task,
@@ -8,6 +9,7 @@ export default function StableTask({
   setIsEditing,
   updateTasks,
 }) {
+  const categories=task.categories
   return (
     <label className="flex">
       <input
@@ -22,16 +24,23 @@ export default function StableTask({
             className={`${task.completed ? 'line-through' : ''} text-xl font-bold flex`}
           >
             {task.title}
-            <div className={`flex gap-2 ${task.completed ? 'hidden':''}`}>
+            <div className={`flex gap-2 ${task.completed ? 'hidden' : ''}`}>
               <PriorityBadge task={task} />
               <DuedateBadge task={task} />
             </div>
           </div>
-          <p
-            className={`${task.completed ? 'line-through' : ''} text-gray-400 ${task.description ? '' : 'italic text-red-200'}`}
+          <div
+            className={`${task.completed ? 'line-through' : ''}} flex gap-10`}
           >
-            {task.description ? `${task.description}` : 'No description'}
-          </p>
+            <p
+              className={`${task.completed ? 'line-through' : ''} text-gray-400 ${task.description ? '' : 'italic text-red-200'}`}
+            >
+              {task.description ? `${task.description}` : 'No description'}
+            </p>
+            <div className={`flex gap-2 ${task.completed ? 'hidden' : ''}`}>
+              <MultiselectBadge categories={categories} />
+            </div>
+          </div>
         </div>
         <nav className="flex gap-2">
           <DeleteModal task={task} deleteTask={deleteTask} />

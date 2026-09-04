@@ -1,15 +1,43 @@
-import { json } from 'express';
 import { getDBConnection } from '../db/getDBConnection.js';
 import { isTitleTooLong } from '../utils/isTitleTooLong.js';
 export async function getTasks(req, res) {
   const db = await getDBConnection();
   try {
-    const results = await db.all(
-      `SELECT * FROM tasks ORDER BY created_at DESC`
-    );
-    const tasks = results.map(ele => ({
-      ...ele,
-      completed: Boolean(ele.completed),
+    // const results = await db.all(
+    //   `SELECT * FROM tasks ORDER BY created_at DESC`
+    // );
+    const results = await db.all(`
+      SELECT
+          t.id,
+          t.title,
+          t.description,
+          t.completed,
+          t.created_at,
+          t.priority,
+          t.dueDate,
+
+          COALESCE(
+            json_group_array(
+              CASE
+                WHEN c.id IS NOT NULL
+                THEN json_object(
+                  'id',c.id,
+                  'name',c.name
+                )
+              END
+            ) FILTER (WHERE c.id IS NOT NULL),
+            '[]'
+          ) AS categories
+      FROM tasks t
+      LEFT JOIN task_categories tc ON tc.task_id=t.id
+      LEFT JOIN categories c ON c.id=tc.category_id
+      GROUP BY t.id
+      ORDER BY t.created_at DESC
+      `);
+    const tasks = results.map(task => ({
+      ...task,
+      completed: Boolean(task.completed),
+      categories: JSON.parse(task.categories || '[]'),
     }));
     return res.json(tasks);
   } catch (err) {
@@ -49,7 +77,10 @@ export async function createTask(req, res) {
   const db = await getDBConnection();
   try {
     const acceptedPriority = ['low', 'medium', 'high'];
-    let { title, description = '', priority, dueDate } = req.body;
+    let { title, description = '', priority, dueDate, multiSelect } = req.body;
+    // -------------------------
+    // Validate title
+    // -------------------------
     if (typeof title !== 'string' || !title.trim()) {
       return res.status(400).send({
         message: 'Title is required',
@@ -57,36 +88,103 @@ export async function createTask(req, res) {
       });
     }
     title = title.trim();
-    if (priority === null) priority = 'medium';
-    priority = priority.toLowerCase();
-    console.log(priority);
-    if (!acceptedPriority.includes(priority)) {
-      return res.status(400).send({
-        message: 'Priority can be only high, medium or low.',
-        success: false,
-      });
-    }
-    if (description) {
-      description = description.toString().trim();
-    }
     if (isTitleTooLong(title, 40)) {
       return res.status(400).send({
         message: `This is a very long title...`,
         success: false,
       });
     }
-    if (dueDate) {
-      dueDate = new Date(dueDate).toISOString();
-      console.log(dueDate);
+    // -------------------------
+    // Validate priority
+    // -------------------------
+    if (priority === null) priority = 'medium';
+    priority = priority.toLowerCase();
+    if (!acceptedPriority.includes(priority)) {
+      return res.status(400).send({
+        message: 'Priority can be only high, medium or low.',
+        success: false,
+      });
     }
+    // -------------------------
+    // description
+    // -------------------------
+    if (description) {
+      description = description.toString().trim();
+    }
+    // -------------------------
+    // Due date
+    // -------------------------
+    if (dueDate) {
+      const date = new Date(dueDate);
+
+      if (Number.isNaN(date.getTime())) {
+        return res.status(400).json({
+          message: 'Invalid due date.',
+          success: false,
+        });
+      }
+
+      dueDate = date.toISOString();
+    } else {
+      dueDate = null;
+    }
+    // -------------------------
+    // categories
+    // -------------------------
+    const categoriesID = Array.isArray(multiSelect)
+      ? multiSelect.map(Number)
+      : [];
+    if (categoriesID.some(id => !Number.isInteger(id) || id <= 0)) {
+      return res.status(400).json({
+        message: 'Invalid category. Please select atleast one valid category',
+        success: false,
+      });
+    }
+    // -------------------------
+    // Create task
+    // -------------------------
     const result = await db.get(
       `
-      INSERT INTO tasks (title, description,priority,dueDate) VALUES(?,?,?,?)
-      RETURNING id,title,description,completed,priority,created_at,dueDate
+      INSERT INTO tasks
+          (title, description,priority,dueDate)
+      VALUES
+          (?,?,?,?)
+      RETURNING
+          id,title,description,completed,priority,created_at,dueDate
       `,
       [title, description, priority, dueDate]
     );
-    const tasks = { ...result, completed: Boolean(result.completed) };
+    const taskId = result.id;
+    // -------------------------
+    // Add category
+    // -------------------------
+    if (categoriesID.length > 0) {
+      await db.exec(`
+        INSERT INTO task_categories(task_id,category_id)
+        VALUES ${categoriesID.map(number => `(${taskId},${number})`).join(',')}
+        `);
+    }
+
+    // -------------------------
+    // Add category
+    // -------------------------
+    const categories = await db.all(
+      `
+      SELECT
+          c.id,
+          c.name
+      FROM categories c
+      JOIN task_categories tc ON tc.category_id=c.id
+      WHERE tc.task_id = ?
+      `,
+      taskId
+    );
+
+    const tasks = {
+      ...result,
+      completed: Boolean(result.completed),
+      categories,
+    };
     return res.status(201).json(tasks);
   } catch (err) {
     return res.status(500).send({
@@ -134,9 +232,20 @@ export async function updateTask(req, res) {
       params.push(priority);
     }
     if (dueDate) {
-      dueDate = new Date(dueDate).toISOString();
+      const date = new Date(dueDate);
+
+      if (Number.isNaN(date.getTime())) {
+        return res.status(400).json({
+          message: 'Invalid due date.',
+          success: false,
+        });
+      }
+
+      dueDate = date.toISOString();
       updates.push('dueDate = ?');
       params.push(dueDate);
+    } else {
+      dueDate = null;
     }
     if (updates.length === 0) {
       return res.status(400).send({

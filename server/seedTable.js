@@ -1,16 +1,16 @@
-import { tasks } from './data.js';
+import { categoriesTAG } from './data.js';
 import { getDBConnection } from './db/getDBConnection.js';
 
 export async function seedTable() {
   const db = await getDBConnection();
   try {
     await db.exec(`BEGIN`);
-    for (const { title, description, completed } of tasks) {
+    for (const item of categoriesTAG) {
       await db.run(
         `
-        INSERT INTO tasks (title,description,completed) VALUES(?,?,?)
+        INSERT INTO categories (name) VALUES(?)
         `,
-        [title, description, completed]
+        [item]
       );
     }
     await db.exec(`COMMIT`);
@@ -22,4 +22,4 @@ export async function seedTable() {
     await db.close();
   }
 }
-seedTable()
+seedTable();
