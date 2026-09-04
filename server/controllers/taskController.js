@@ -116,14 +116,12 @@ export async function createTask(req, res) {
     // -------------------------
     if (dueDate) {
       const date = new Date(dueDate);
-
       if (Number.isNaN(date.getTime())) {
         return res.status(400).json({
           message: 'Invalid due date.',
           success: false,
         });
       }
-
       dueDate = date.toISOString();
     } else {
       dueDate = null;
@@ -134,6 +132,7 @@ export async function createTask(req, res) {
     const categoriesID = Array.isArray(multiSelect)
       ? multiSelect.map(Number)
       : [];
+    console.log(categoriesID);
     if (categoriesID.some(id => !Number.isInteger(id) || id <= 0)) {
       return res.status(400).json({
         message: 'Invalid category. Please select atleast one valid category',
@@ -199,9 +198,34 @@ export async function updateTask(req, res) {
   try {
     const acceptedPriority = ['low', 'medium', 'high'];
     const patchId = req.params.id;
-    let { completed, title, description, priority, dueDate } = req.body;
+    let { completed, title, description, priority, dueDate, categoriesID } =
+      req.body;
+
     const updates = [];
     const params = [];
+    // -------
+    // Validate categoriesID
+    // -------
+    if (categoriesID !== undefined) {
+      if (!Array.isArray(categoriesID)) {
+        return res.status(400).json({
+          message: 'categoriesID must be an array.',
+          success: false,
+        });
+      }
+
+      categoriesID = categoriesID.map(Number);
+
+      if (categoriesID.some(id => !Number.isInteger(id) || id <= 0)) {
+        return res.status(400).json({
+          message: 'Invalid category ID.',
+          success: false,
+        });
+      }
+    }
+    // -------
+    // Validate completed
+    // -------
     if (completed !== undefined) {
       if (typeof completed !== 'boolean') {
         return res.status(400).send({
@@ -212,14 +236,23 @@ export async function updateTask(req, res) {
       updates.push('completed = ?');
       params.push(completed ? 1 : 0);
     }
+    // -------
+    // Validate title
+    // -------
     if (title !== undefined) {
       updates.push('title = ?');
       params.push(title);
     }
+    // -------
+    // Validate description
+    // -------
     if (description !== undefined) {
       updates.push('description = ?');
       params.push(description);
     }
+    // -------
+    // Validate priority
+    // -------
     if (priority) {
       priority = priority.toLowerCase();
       if (!acceptedPriority.includes(priority)) {
@@ -231,6 +264,9 @@ export async function updateTask(req, res) {
       updates.push('priority = ?');
       params.push(priority);
     }
+    // -------
+    // Validate dueDate
+    // -------
     if (dueDate) {
       const date = new Date(dueDate);
 
@@ -247,29 +283,96 @@ export async function updateTask(req, res) {
     } else {
       dueDate = null;
     }
-    if (updates.length === 0) {
+    // -------
+    // Validate Empty Update
+    // -------
+    if (updates.length === 0 && categoriesID === undefined) {
       return res.status(400).send({
         message: 'Incomplete update',
         success: false,
       });
     }
-    params.push(patchId);
-    const result = await db.get(
+    const taskExists = await db.get(
       `
-      UPDATE tasks
-      SET ${updates.join(', ')}
-      WHERE id=?
-      RETURNING id,title,description,completed,created_at,priority,dueDate
+      SELECT id FROM tasks
+      WHERE tasks.id=?
       `,
-      params
+      [patchId]
     );
-    if (!result) {
+    if (!taskExists) {
       return res.status(404).send({
         message: 'Task not found.',
         success: false,
       });
     }
-    const tasks = { ...result, completed: Boolean(result.completed) };
+    let result;
+    if (updates.length > 0) {
+      params.push(patchId);
+      result = await db.get(
+        `
+        UPDATE tasks
+        SET ${updates.join(', ')}
+        WHERE id=?
+        RETURNING id,title,description,completed,created_at,priority,dueDate
+        `,
+        params
+      );
+    } else {
+      result = await db.get(
+        `
+        SELECT
+          t.id,
+          t.title,
+          t.description,
+          t.completed,
+          t.created_at,
+          t.priority,
+          t.dueDate
+        FROM tasks t
+        WHERE t.id=?
+        `,
+        [patchId]
+      );
+    }
+
+    if (categoriesID !== undefined) {
+      await db.run(
+        `
+        DELETE FROM task_categories
+        WHERE task_id = ?
+        `,
+        [patchId]
+      );
+
+      if (categoriesID.length > 0) {
+        const placeholder = categoriesID.map(() => `(?,?)`).join(',');
+        const values = categoriesID.flatMap(num => [patchId, num]);
+        await db.run(
+          `
+          INSERT INTO task_categories(task_id,category_id)
+          VALUES ${placeholder}
+          `,
+          values
+        );
+      }
+    }
+
+    const categories = await db.all(
+      `
+      SELECT
+          c.id,
+          c.name
+      FROM categories c
+      JOIN task_categories tc ON tc.category_id=c.id
+      WHERE tc.task_id = ?
+      `,
+      patchId
+    );
+    const tasks = {
+      ...result,
+      completed: Boolean(result.completed),
+      categories,
+    };
     return res.status(200).json(tasks);
   } catch (err) {
     return res.status(500).send({
@@ -283,6 +386,13 @@ export async function deleteTask(req, res) {
   const db = await getDBConnection();
   try {
     const { id } = req.params;
+    await db.run(
+      `
+      DELETE FROM task_categories
+      WHERE task_id=?
+      `,
+      id
+    );
     const result = await db.run(
       `
       DELETE FROM tasks

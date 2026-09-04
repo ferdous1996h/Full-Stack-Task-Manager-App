@@ -6,8 +6,7 @@ import { getDBConnection } from './db/getDBConnection.js';
 async function alterTable() {
   const db = await getDBConnection();
   await db.run(`
-    ALTER TABLE tasks
-    ADD COLUMN dueDate TEXT;
+    DELETE FROM task_categories
     `);
   console.log('Table altered');
   await db.close();

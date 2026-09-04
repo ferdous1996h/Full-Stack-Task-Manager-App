@@ -1,5 +1,6 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import titleCase from '../utils/titleCase.js';
+import MultiselectInput from './MultiselectInput.jsx';
 
 export default function EditingTask({
   updateTasks,
@@ -8,6 +9,9 @@ export default function EditingTask({
   setTasks,
   showAlert,
 }) {
+  const [selectedCategory, setSelectedCategory] = useState(
+    task?.categories.map(item => ({ value: item.id, label: item.name }))
+  );
   let titleTemp = useRef(task.title);
   let descriptionTemp = useRef(task.description);
   let priorityTemp = useRef(task.priority);
@@ -23,14 +27,16 @@ export default function EditingTask({
         description,
         priority,
         dueDate,
+        categoriesID: selectedCategory.map(category => category.value),
       }),
     });
     const editedTask = await response.json();
-    console.log(editedTask);
     if (editedTask.id) {
       setTasks(prev => prev.map(task => (task.id === id ? editedTask : task)));
       setIsEditing(false);
       showAlert('Task record updated!', 'info');
+    } else {
+      showAlert(editedTask.message, 'error');
     }
   }
   return (
@@ -93,6 +99,10 @@ export default function EditingTask({
           </div>
         </div>
       </label>
+      <MultiselectInput
+        value={selectedCategory}
+        onChange={setSelectedCategory}
+      />
       <div className="flex justify-between items-center w-9/10 m-auto">
         <div className="badge badge-outline badge-info ml-5">Editing</div>
         <div className="flex justify-center gap-2 mt-2">

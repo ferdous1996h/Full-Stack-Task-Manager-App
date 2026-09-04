@@ -66,7 +66,7 @@ const darkStyles = {
     color: '#fff',
   }),
 };
-export default function MultiselectInput() {
+export default function MultiselectInput({value,onChange}) {
   const [categoryOptions, setCategoryOptions] = useState([]);
   useEffect(() => {
     async function fetchCategory() {
@@ -76,6 +76,7 @@ export default function MultiselectInput() {
           throw new Error('There is a error while fetching categories');
         }
         const data = await response.json();
+        console.log(data)
         setCategoryOptions(data);
       } catch (err) {
         console.error(err);
@@ -87,8 +88,9 @@ export default function MultiselectInput() {
     <Select
       closeMenuOnSelect={false}
       components={animatedComponents}
-      defaultValue={[categoryOptions[0]]}
       isMulti
+      value={value}
+      onChange={onChange}
       options={categoryOptions}
       styles={darkStyles}
       className="mt-1"

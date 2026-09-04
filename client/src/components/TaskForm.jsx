@@ -25,7 +25,6 @@ export default function TaskForm({ setTasks, showAlert }) {
       }),
     });
     const createdtask = await response.json();
-    console.log(createdtask);
     if (createdtask.id) {
       setTasks(prev => [createdtask, ...prev]);
       showAlert('Task created successfully', 'success');
