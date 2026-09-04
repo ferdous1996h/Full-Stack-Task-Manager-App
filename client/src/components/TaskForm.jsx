@@ -73,7 +73,7 @@ export default function TaskForm({ setTasks, showAlert }) {
           <input type="date" name="dueDate" id="dueDate" className="input" />
           <button
             type="submit"
-            className="btn btn-block border-1 border-gray-500 mt-2"
+            className="btn btn-block border border-gray-500 mt-2"
           >
             + Add task
           </button>
